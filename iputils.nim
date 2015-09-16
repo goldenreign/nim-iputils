@@ -1,15 +1,25 @@
 import net
 
+proc initIPv4Address*[T: SomeInteger](bytes: openArray[T]): IpAddress =
+  if bytes.len < 4:
+      raise newException(ValueError, "Initializing array is too short")
+  result.family = IpAddressFamily.IPv4
+  for i in 0..3:
+    result.address_v4[i] = cast[uint8](bytes[i])
+
+proc initIPv6Address*[T: SomeInteger](bytes: openArray[T]): IpAddress =
+  if bytes.len < 16:
+      raise newException(ValueError, "Initializing array is too short")
+  result.family = IpAddressFamily.IPv6
+  for i in 0..15:
+    result.address_v6[i] = cast[uint8](bytes[i])
+
 proc initIpAddress*[T: SomeInteger](family: IpAddressFamily, bytes: openArray[T]): IpAddress =
   case family
   of IpAddressFamily.IPv4:
-    if bytes.len < 4:
-      raise newException(ValueError, "Initializing array too short")
-    result.family = family
-    for i in 0..3:
-      result.address_v4[i] = cast[uint8](bytes[i])
+    result = initIPv4Address(bytes)
   of IpAddressFamily.IPv6:
-    raise newException(ValueError, "IPv6 is not supported yet :(")
+    result = initIPv6Address(bytes)
 
 proc prefixToIPv4SubnetMask*[T: SomeInteger](prefix: T): IpAddress =
   if prefix <= cast[T](0) or prefix > cast[T](32):
@@ -72,23 +82,26 @@ when isMainModule:
   var myIp: IpAddress
   myIp.family = IpAddressFamily.IPv4
   myIp.address_v4 = [192'u8, 168'u8, 1'u8, 15'u8]
-  
+
   var maskIp: IpAddress
   maskIp.family = IpAddressFamily.IPv4
   maskIp.address_v4 = [255'u8, 255'u8, 255'u8, 0'u8]
-  
+
   echo baseIpAddress(myIp, maskIp)
   echo baseIpAddress(myIp, 24'u8)
   echo baseIpAddress(myIp, 16)
   echo baseIpAddress(myIp, 8'u32)
-  
-  let myMCIp = initIpAddress(IpAddressFamily.IPv4, @[239, 1, 10, 18])
+
+  let myMCIp = initIPv4Address(@[239, 1, 10, 18])
   let myMCMask = 4
-  
+
   echo baseIpAddress(myMCIp, myMCMask)
-  
+
   echo broadcastIpAddress(myIp, maskIp)
   echo broadcastIpAddress(myIp, 24'u8)
   echo broadcastIpAddress(myIp, 16)
   echo broadcastIpAddress(myIp, 8'u32)
   echo broadcastIpAddress(myMCIp, myMCMask)
+
+  let myIPv6 = initIPv6Address([239, 1, 10, 18, 35, 17, 200, 137, 85, 0, 34, 211, 153, 47, 7, 25])
+  echo myIPv6
